@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th2 04, 2026 lúc 07:47 AM
+-- Thời gian đã tạo: Th2 04, 2026 lúc 12:02 PM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -153,6 +153,38 @@ INSERT INTO `products` (`id`, `product_name`, `price`, `category_id`, `stock_qua
 -- --------------------------------------------------------
 
 --
+-- Cấu trúc bảng cho bảng `product_images`
+--
+
+CREATE TABLE `product_images` (
+  `id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `image_url` varchar(255) NOT NULL,
+  `is_primary` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `product_images`
+--
+
+INSERT INTO `product_images` (`id`, `product_id`, `image_url`, `is_primary`, `created_at`) VALUES
+(1, 1, 'uploads/hinh1.jpg', 1, '2026-02-04 09:12:32'),
+(2, 2, 'uploads/hinh2.jpg', 1, '2026-02-04 09:12:32'),
+(3, 3, 'uploads/hinh3.jpg', 1, '2026-02-04 09:12:32'),
+(4, 4, 'uploads/hinh4.jpg', 1, '2026-02-04 09:12:32'),
+(5, 5, 'uploads/hinh5.jpg', 1, '2026-02-04 09:12:32'),
+(6, 6, 'uploads/hinh6.jpg', 1, '2026-02-04 09:12:32'),
+(7, 7, 'uploads/hinh7.jpg', 1, '2026-02-04 09:12:32'),
+(8, 8, 'uploads/hinh8.jpg', 1, '2026-02-04 09:12:32'),
+(9, 9, 'uploads/hinh9.jpg', 1, '2026-02-04 09:12:32'),
+(10, 10, 'uploads/hinh10.jpg', 1, '2026-02-04 09:12:32'),
+(11, 11, 'uploads/hinh11.jpg', 1, '2026-02-04 09:12:32'),
+(12, 12, 'uploads/hinh12.jpg', 1, '2026-02-04 09:12:32');
+
+-- --------------------------------------------------------
+
+--
 -- Cấu trúc bảng cho bảng `promotions`
 --
 
@@ -220,6 +252,28 @@ INSERT INTO `purchase_orders` (`id`, `supplier_id`, `order_date`, `total_value`)
 (2, 3, '2024-01-25 09:00:00', 12000000.00),
 (3, 4, '2024-02-15 11:00:00', 128000000.00),
 (4, 6, '2024-02-20 16:00:00', 78000000.00);
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `reviews`
+--
+
+CREATE TABLE `reviews` (
+  `id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `rating` int(11) NOT NULL COMMENT 'Số sao từ 1 đến 5',
+  `comment` text DEFAULT NULL COMMENT 'Nội dung đánh giá',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `reviews`
+--
+
+INSERT INTO `reviews` (`id`, `product_id`, `rating`, `comment`, `created_at`) VALUES
+(1, 1, 5, NULL, '2026-02-04 10:57:37'),
+(2, 4, 5, NULL, '2026-02-04 10:59:58');
 
 -- --------------------------------------------------------
 
@@ -331,6 +385,13 @@ ALTER TABLE `products`
   ADD KEY `category_id` (`category_id`);
 
 --
+-- Chỉ mục cho bảng `product_images`
+--
+ALTER TABLE `product_images`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_product_images_product` (`product_id`);
+
+--
 -- Chỉ mục cho bảng `promotions`
 --
 ALTER TABLE `promotions`
@@ -350,6 +411,12 @@ ALTER TABLE `purchase_details`
 ALTER TABLE `purchase_orders`
   ADD PRIMARY KEY (`id`),
   ADD KEY `supplier_id` (`supplier_id`);
+
+--
+-- Chỉ mục cho bảng `reviews`
+--
+ALTER TABLE `reviews`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Chỉ mục cho bảng `roles`
@@ -405,6 +472,12 @@ ALTER TABLE `products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
+-- AUTO_INCREMENT cho bảng `product_images`
+--
+ALTER TABLE `product_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
 -- AUTO_INCREMENT cho bảng `promotions`
 --
 ALTER TABLE `promotions`
@@ -421,6 +494,12 @@ ALTER TABLE `purchase_details`
 --
 ALTER TABLE `purchase_orders`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT cho bảng `reviews`
+--
+ALTER TABLE `reviews`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT cho bảng `roles`
@@ -469,6 +548,12 @@ ALTER TABLE `payments`
 --
 ALTER TABLE `products`
   ADD CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`);
+
+--
+-- Các ràng buộc cho bảng `product_images`
+--
+ALTER TABLE `product_images`
+  ADD CONSTRAINT `fk_product_images_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
 
 --
 -- Các ràng buộc cho bảng `purchase_details`

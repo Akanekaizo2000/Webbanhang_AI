@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết sản phẩm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        .main-img { 
+            width: 100%; 
+            height: 400px; 
+            object-fit: contain; 
+            background: white; 
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .thumb-img { 
+            width: 80px; 
+            height: 80px; 
+            object-fit: cover; 
+            cursor: pointer; 
+            border: 1px solid #ddd; 
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .thumb-img:hover { 
+            border-color: #ffc107; 
+            transform: scale(1.05);
+        }
+        .card-img-top {
+            transition: transform 0.3s;
+        }
+        .card:hover .card-img-top {
+            transform: scale(1.05);
+        }
+        /* Style cho ngôi sao đánh giá */
+        #rating-stars i {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        #rating-stars i:hover {
+            color: #ffc107 !important;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container mt-5 mb-5">
+    <a href="product.html" class="btn btn-outline-secondary mb-4">
+        <i class="bi bi-arrow-left"></i> ← Quay lại danh sách
+    </a>
+    
+    <div class="row bg-white p-4 shadow-sm rounded">
+        <div class="col-md-6">
+            <img id="main-product-img" src="https://via.placeholder.com/400" class="main-img mb-3">
+            <div id="thumb-list" class="d-flex gap-2 flex-wrap"></div>
+        </div>
+        
+        <div class="col-md-6">
+            <span id="p-category" class="badge bg-info text-dark mb-2">Danh mục</span>
+            <h1 id="p-name" class="fw-bold">Đang tải dữ liệu...</h1>
+            
+            <div class="mb-2 text-warning fs-4" id="rating-stars">
+                <i class="bi bi-star" data-val="1"></i>
+                <i class="bi bi-star" data-val="2"></i>
+                <i class="bi bi-star" data-val="3"></i>
+                <i class="bi bi-star" data-val="4"></i>
+                <i class="bi bi-star" data-val="5"></i>
+                <span class="text-secondary fs-6 ms-2 fst-italic" style="font-size: 0.8rem;">(Click để đánh giá)</span>
+            </div>
+
+            <h3 id="p-price" class="text-danger my-3 fw-bold"></h3>
+            
+            <p class="text-muted">
+                Tình trạng: <span id="p-stock" class="fw-bold text-success">Đang kiểm tra...</span>
+            </p>
+            
+            <div id="p-description" class="mt-3 text-secondary border-top pt-3"></div>
+
+            <div class="d-flex align-items-center mb-3 mt-4">
+                <strong class="me-3">Số lượng:</strong>
+                <div class="input-group" style="width: 140px;">
+                    <button class="btn btn-outline-secondary" type="button" onclick="updateQty(-1)">-</button>
+                    <input type="number" id="qty" class="form-control text-center" value="1" min="1">
+                    <button class="btn btn-outline-secondary" type="button" onclick="updateQty(1)">+</button>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button onclick="addToCart()" class="btn btn-warning btn-lg fw-bold shadow-sm text-dark">
+                    <i class="bi bi-cart-plus-fill"></i> THÊM VÀO GIỎ HÀNG
+                </button>
+                
+                <a href="cart.html" class="btn btn-outline-success">
+                    <i class="bi bi-credit-card"></i> Xem Giỏ Hàng & Thanh Toán
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mt-5 mb-4 fw-bold text-uppercase border-bottom pb-2">Sản phẩm tương tự</h4>
+    <div class="row" id="similar-products">
+        <div class="col-12 text-center py-5"><div class="spinner-border text-warning"></div></div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// --- 1. CÁC HÀM XỬ LÝ TOÀN CỤC (Global Functions) ---
+
+// Hàm tăng giảm số lượng
+function updateQty(change) {
+    let qtyInput = $('#qty');
+    let currentQty = parseInt(qtyInput.val());
+    if (isNaN(currentQty)) currentQty = 1;
+
+    let newQty = currentQty + change;
+    if (newQty < 1) newQty = 1; // Không cho nhỏ hơn 1
+    
+    // (Tuỳ chọn) Kiểm tra tồn kho nếu muốn
+    if (window.currentProduct && newQty > window.currentProduct.stock_quantity) {
+        alert("Số lượng vượt quá tồn kho!");
+        newQty = window.currentProduct.stock_quantity;
+    }
+
+    qtyInput.val(newQty);
+}
+
+// Hàm thêm vào giỏ hàng
+function addToCart() {
+    if (!window.currentProduct) {
+        alert("Dữ liệu sản phẩm chưa tải xong!");
+        return;
+    }
+
+    let qty = parseInt($('#qty').val());
+    if (qty <= 0 || isNaN(qty)) qty = 1;
+
+    // Lấy giỏ hàng từ LocalStorage
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    
+    // Kiểm tra sản phẩm đã có chưa
+    let existingItem = cart.find(item => item.id == window.currentProduct.id);
+    
+    // Lấy ảnh hiện tại đang xem (để hiển thị trong giỏ cho đẹp)
+    let currentImg = $('#main-product-img').attr('src');
+
+    if (existingItem) {
+        existingItem.quantity += qty;
+    } else {
+        cart.push({
+            id: window.currentProduct.id,
+            name: window.currentProduct.product_name,
+            price: window.currentProduct.price,
+            image: currentImg,
+            quantity: qty
+        });
+    }
+    
+    localStorage.setItem('cart', JSON.stringify(cart));
+    alert(`Đã thêm ${qty} sản phẩm vào giỏ hàng thành công!`);
+}
+
+// --- 2. KHI TRANG ĐÃ TẢI XONG ---
+$(document).ready(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+
+    if (!productId) {
+        alert("Không tìm thấy ID sản phẩm!");
+        return;
+    }
+
+    // Gọi API lấy chi tiết
+    $.getJSON(`api/detail.php?id=${productId}`)
+    .done(function(data) {
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        // LƯU DỮ LIỆU SẢN PHẨM RA BIẾN TOÀN CỤC ĐỂ DÙNG CHO GIỎ HÀNG
+        window.currentProduct = data.product;
+        const p = data.product;
+
+        // A. Điền thông tin cơ bản
+        $('#p-name').text(p.product_name);
+        $('#p-price').text(Number(p.price).toLocaleString('vi-VN') + 'đ');
+        $('#p-category').text(p.category_name || 'Sản phẩm');
+        
+        let stockText = (p.stock_quantity > 0) ? `Còn hàng (${p.stock_quantity})` : 'Hết hàng';
+        $('#p-stock').text(stockText);
+        
+        if (p.description) {
+            $('#p-description').html(p.description);
+        } else {
+            $('#p-description').text("Chưa có mô tả cho sản phẩm này.");
+        }
+
+        // B. Xử lý hiển thị ảnh (Logic sửa lỗi đường dẫn)
+        if (data.images && data.images.length > 0) {
+            let imgPath = data.images[0].image_url;
+            if (!imgPath.includes('uploads/')) imgPath = 'uploads/' + imgPath;
+            
+            $('#main-product-img').attr('src', imgPath);
+
+            // Tạo danh sách ảnh nhỏ
+            let thumbHtml = '';
+            data.images.forEach(img => {
+                let tPath = img.image_url;
+                if (!tPath.includes('uploads/')) tPath = 'uploads/' + tPath;
+                thumbHtml += `<img src="${tPath}" class="thumb-img" onclick="$('#main-product-img').attr('src', '${tPath}')">`;
+            });
+            $('#thumb-list').html(thumbHtml);
+        } else {
+            $('#main-product-img').attr('src', 'https://via.placeholder.com/400?text=No+Image');
+        }
+
+        // C. Xử lý sản phẩm tương tự
+        let similarHtml = '';
+        if (data.similar && data.similar.length > 0) {
+            data.similar.forEach(s => {
+                let sImg = s.image_url;
+                if (!sImg.includes('uploads/')) sImg = 'uploads/' + sImg;
+
+                similarHtml += `
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <a href="detail.html?id=${s.id}">
+                                <img src="${sImg}" class="card-img-top p-3" style="height:200px; object-fit:contain" onerror="this.src='https://via.placeholder.com/200'">
+                            </a>
+                            <div class="card-body">
+                                <h6 class="card-title text-truncate">
+                                    <a href="detail.html?id=${s.id}" class="text-decoration-none text-dark">${s.product_name}</a>
+                                </h6>
+                                <p class="text-danger fw-bold mb-0">${Number(s.price).toLocaleString('vi-VN')}đ</p>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            $('#similar-products').html(similarHtml);
+        } else {
+            $('#similar-products').html('<p class="text-center w-100 text-muted">Không có sản phẩm tương tự.</p>');
+        }
+    })
+    .fail(function() {
+        alert("Lỗi kết nối Server. Vui lòng kiểm tra file api/detail.php");
+    });
+
+    // --- 3. XỬ LÝ CLICK ĐÁNH GIÁ SAO ---
+    $('#rating-stars i').on('click', function() {
+        let rating = $(this).data('val');
+        
+        // Hiệu ứng tô màu sao
+        $('#rating-stars i').removeClass('bi-star-fill text-warning').addClass('bi-star');
+        $('#rating-stars i').each(function(index) {
+            if (index < rating) {
+                $(this).removeClass('bi-star').addClass('bi-star-fill text-warning');
+            }
+        });
+
+        // Gửi đánh giá lên Server (cần có file api/rating.php)
+        $.post('api/rating.php', { 
+            product_id: productId, 
+            rating: rating 
+        }, function(response) {
+            alert(`Cảm ơn bạn đã đánh giá ${rating} sao!`);
+        }).fail(function() {
+            console.log("Chưa có file api/rating.php, nhưng giao diện đã hiển thị OK.");
+            // Vẫn hiện thông báo để người dùng thấy phản hồi
+            alert(`Cảm ơn bạn đã đánh giá ${rating} sao! (Demo)`);
+        });
+    });
+});
+</script>
+</body>
+</html>
