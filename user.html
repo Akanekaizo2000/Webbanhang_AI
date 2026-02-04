@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý thành viên</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --bg-body: #f1f4f9;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin-top: 50px;
+        }
+
+        /* Card & Table Customization */
+        .main-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 25px;
+            border: none;
+        }
+
+        .search-container {
+            max-width: 300px;
+            margin-bottom: 20px;
+        }
+
+        .table thead th {
+            background-color: transparent;
+            border-bottom: 1px solid #eee;
+            color: #777;
+            font-weight: 600;
+            padding: 15px;
+        }
+
+        .table tbody td {
+            padding: 15px;
+            border-bottom: 1px solid #f8f8f8;
+            vertical-align: middle;
+        }
+
+        /* Role Badges */
+        .badge-role {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .role-1 { background-color: #ffe5e5; color: #d9534f; } /* Admin */
+        .role-2 { background-color: #e5f1ff; color: #0275d8; } /* Staff */
+
+        .action-btn {
+            border: none;
+            background: none;
+            padding: 5px;
+            margin: 0 5px;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+
+        /* Modal Customization */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0">Quản lý thành viên</h2>
+        <button class="btn btn-primary px-4 py-2" style="border-radius: 10px;" id="btnOpenModal">
+            <i class="fas fa-plus-circle me-2"></i>Thêm thành viên
+        </button>
+    </div>
+
+    <div class="card main-card">
+        <div class="search-container">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control bg-light border-start-0" placeholder="Tìm kiếm tên đăng nhập...">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Tên đăng nhập</th>
+                        <th>Vai trò</th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="memberTableBody">
+                    </tbody>
+            </table>
+        </div>
+
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center" id="pagination"></ul>
+        </nav>
+    </div>
+</div>
+
+<div class="modal fade" id="memberModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalTitle">Thêm thành viên mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="memberForm">
+                    <input type="hidden" name="id" id="userId">
+
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" name="username" id="username" placeholder="Tên đăng nhập" required>
+                        <label for="username"><i class="far fa-user me-2"></i>Tên đăng nhập</label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" name="password" id="password" placeholder="Mật khẩu">
+                        <label for="password"><i class="fas fa-lock me-2"></i>Mật khẩu (Để trống nếu không đổi)</label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <select class="form-select" name="role_id" id="role_id">
+                            <option value="1">Quản trị viên</option>
+                            <option value="2">Nhân viên bán hàng</option>
+                        </select>
+                        <label for="role_id">Vai trò</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold mt-2" style="border-radius: 12px;">
+                        Xác nhận lưu dữ liệu
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    const mModal = new bootstrap.Modal('#memberModal');
+    let currentPage = 1;
+
+    // 1. Hàm tải danh sách người dùng từ API
+    function loadUsers(page = 1, search = '') {
+        $.ajax({
+            url: 'api/user_lists.php',
+            type: 'GET',
+            data: { page: page, search: search },
+            dataType: 'json',
+            success: function(response) {
+                let rows = '';
+                if (response.users.length === 0) {
+                    rows = '<tr><td colspan="3" class="text-center text-muted">Không tìm thấy thành viên nào</td></tr>';
+                } else {
+                    response.users.forEach(user => {
+                        const roleClass = `role-${user.role_id}`;
+                        const roleName = user.role_name || (user.role_id == 1 ? 'Quản trị viên' : 'Nhân viên');
+                        
+                        rows += `
+                            <tr>
+                                <td class="fw-bold">${user.username}</td>
+                                <td><span class="badge-role ${roleClass}">${roleName}</span></td>
+                                <td class="text-center">
+                                    <button class="action-btn text-primary" onclick='openEditModal(${JSON.stringify(user)})'>
+                                        <i class="far fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn text-danger" onclick="deleteUser(${user.id})">
+                                        <i class="far fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>`;
+                    });
+                }
+                $('#memberTableBody').html(rows);
+                renderPagination(response.totalPages, page);
+            },
+            error: function(xhr) {
+                alert("Lỗi tải dữ liệu: " + xhr.responseText);
+            }
+        });
+    }
+
+    // 2. Render nút phân trang
+    function renderPagination(total, current) {
+        let html = '';
+        for (let i = 1; i <= total; i++) {
+            html += `
+                <li class="page-item ${i == current ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>`;
+        }
+        $('#pagination').html(html);
+    }
+
+    // 3. Xử lý khi nhấn vào số trang
+    $(document).on('click', '.page-link', function(e) {
+        e.preventDefault();
+        currentPage = $(this).data('page');
+        loadUsers(currentPage, $('#searchInput').val());
+    });
+
+    // 4. Tìm kiếm (Sử dụng sự kiện input để tìm kiếm ngay lập tức)
+    $('#searchInput').on('input', function() {
+        loadUsers(1, $(this).val());
+    });
+
+    // 5. Mở Modal Thêm mới
+    $('#btnOpenModal').click(function() {
+        $('#modalTitle').text('Thêm thành viên mới');
+        $('#memberForm')[0].reset();
+        $('#userId').val(''); // Xóa ID để hệ thống hiểu là thêm mới
+        mModal.show();
+    });
+
+    // 6. Xử lý Thêm hoặc Cập nhật
+    $('#memberForm').submit(function(e) {
+        e.preventDefault();
+        const id = $('#userId').val();
+        const url = id ? 'api/user_update.php' : 'api/user_add.php';
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    alert(res.message);
+                    mModal.hide();
+                    loadUsers(currentPage);
+                } else {
+                    alert("Lỗi: " + res.message);
+                }
+            }
+        });
+    });
+
+    // 7. Mở Modal Sửa
+    window.openEditModal = function(user) {
+        $('#modalTitle').text('Cập nhật tài khoản');
+        $('#userId').val(user.id);
+        $('#username').val(user.username);
+        $('#password').val(''); // Không hiển thị mật khẩu cũ vì lý do bảo mật
+        $('#role_id').val(user.role_id);
+        mModal.show();
+    };
+
+    // 8. Xử lý Xóa
+    window.deleteUser = function(id) {
+        if (confirm("Bạn có chắc chắn muốn xóa thành viên này?")) {
+            $.ajax({
+                url: 'api/user_delete.php',
+                type: 'POST',
+                data: { id: id },
+                dataType: 'json',
+                success: function(res) {
+                    alert(res.message);
+                    loadUsers(currentPage);
+                }
+            });
+        }
+    };
+
+    // Khởi tạo dữ liệu lần đầu
+    loadUsers();
+});
+</script>
+
+</body>
+</html>
